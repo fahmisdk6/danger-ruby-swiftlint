@@ -72,7 +72,7 @@ module Danger
     #          if nil, modified and added files from the diff will be used.
     # @return  [void]
     #
-    def lint_files(files = nil, inline_mode: false, fail_on_error: false, additional_swiftlint_args: '', no_comment: false, &select_block)
+    def lint_files(files = nil, inline_mode: false, fail_on_error: false, fail_on_warning: false, additional_swiftlint_args: '', no_comment: false, &select_block)
       # Fails if swiftlint isn't installed
       raise 'swiftlint is not installed' unless swiftlint.installed?
 
