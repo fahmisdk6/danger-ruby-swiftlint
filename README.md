@@ -1,6 +1,4 @@
-[![CircleCI](https://circleci.com/gh/ashfurrow/danger-ruby-swiftlint.svg?style=svg)](https://circleci.com/gh/ashfurrow/danger-ruby-swiftlint)
-
-# Danger SwiftLint
+# Danger SwiftLint [![Build Status](https://travis-ci.org/ashfurrow/danger-ruby-swiftlint.svg?branch=master)](https://travis-ci.org/ashfurrow/danger-ruby-swiftlint)
 
 A [Danger Ruby](https://github.com/danger/danger) plugin for [SwiftLint](https://github.com/realm/SwiftLint) that runs on macOS.
 
@@ -53,6 +51,42 @@ If you need to specify options for `swiftlint` that can _only_ be specified by c
 
 ```rb
 swiftlint.lint_files additional_swiftlint_args: '--lenient'
+```
+
+By default, only files that were added or modified are linted.
+
+It's not possible to use [nested configurations](https://github.com/realm/SwiftLint#nested-configurations) in that case, because Danger SwiftLint lints each file on it's own, and by doing that the nested configuration is disabled. If you want to learn more details about this, read the whole issue [here](https://github.com/ashfurrow/danger-swiftlint/issues/4).
+
+However, you can use the `lint_all_files` option to lint all the files. In that case, Danger SwiftLint doesn't lint files individually, which makes nested configuration to work. It'd be the same as you were running `swiftlint` on the root folder:
+
+```ruby
+swiftlint.lint_all_files = true
+swiftlint.lint_files
+```
+
+It's also possible to pass a block to filter out any violations after swiftlint has been run. Here's an example filtering out all violations that didn't occur in the current github PR, using the third party gem `git_diff_parser`:
+
+```ruby
+require 'git_diff_parser'
+
+diff = GitDiffParser::Patches.parse(github.pr_diff)
+dir = "#{Dir.pwd}/"
+swiftlint.lint_files(inline_mode: true) { |violation|
+  diff_filename = violation['file'].gsub(dir, '')
+  file_patch = diff.find_patch_by_file(diff_filename)
+  file_patch != nil && file_patch.changed_lines.any? { |line| line.number == violation['line']}
+}
+```
+
+Or, by passing the `no_comment` parameter, you can completely manage the commenting of issues, warnings and errors yourself. An example usage might be using GitHub reviews, or custom filtering logic. **Note**: When this parameter is set to `true`, all other parameters except `files` and `additional_swiftlint_args` are ignored.
+
+```ruby
+swiftlint.lint_files(no_comment: true)
+
+# Now, you can handle the combined warnings + errors, or each separately commenting
+swiftlint.issues    # contains combined warnings + errors
+swiftlint.warnings  # just warnings
+swiftlint.errors    # just errors
 ```
 
 You can use the `SWIFTLINT_VERSION` environment variable to override the default version installed via the `rake install` task.
